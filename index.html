@@ -1,27 +1,115 @@
-<!doctype html>
 <html>
 <head>
- <!--  <link rel="stylesheet" type="text/css"  href="css/style.css">
- -->
+    <title>Affectiva JavaScript SDK MR Demo</title>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="demo/css/bootstrap-darkly.min.css" />
+    <link href="demo/css/demo.css" rel="stylesheet" type="text/css" />
+
+    <!-- outside vendor files -->
+    <script src="demo/js/vendor/jquery-2.1.4.js"></script>
+    <script src="demo/js/vendor/d3.min.js"></script>
+
+    <!-- demo files -->
+    <script src="demo/js/run_demo.js"></script>
+    <script src="https://download.affectiva.com/js/3.1/affdex.js"></script>
+    
+    <a href="https://github.com/affectiva/youtube-demo"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/c6286ade715e9bea433b4705870de482a654f78a/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f77686974655f6666666666662e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_white_ffffff.png"></a>
 </head>
-<body>
 
-<input type="file" id="filename" name="filename"></input>
- <button id="btn">Click here</button>
- <p id="response"></p>
- 
+<body class="container">
+<div id="text-width"></div>
+<div id="lightbox"></div>
+<div id="demo-setup">
+    <div class="row">
+        <div class="col-md-12 text-center">
+            <div id="facevideo-node"></div>
+        </div>
+    </div>
+    <div id="messages" class="row">
+        <div class="col-md-6 col-md-offset-3 demo-message" id="msg-starting-webcam">
+            <div class="alert alert-info" role="alert">Connecting to webcam...</div>
+        </div>
+        <div class="col-md-6 col-md-offset-3 demo-message" id="msg-webcam-failure">
+            <div class="alert alert-danger" role="alert"><strong>Error: </strong>Failed to connect to webcam.</div>
+        </div>
+        <div class="col-md-6 col-md-offset-3 demo-message" id="msg-detector-status">
+            <div class="alert alert-info" role="alert">Loading and starting the emotions detector...</div>
+        </div>
+        <div class="col-md-6 col-md-offset-3 demo-message" id="msg-bad-url">
+            <div class="alert alert-warning" role="alert"><strong>Error: </strong>Please enter a valid YouTube URL or search phrase.</div>
+        </div>
+        <div class="col-md-6 col-md-offset-3 demo-message" id="msg-short-video">
+            <div class="alert alert-warning" role="alert"><strong>Error: </strong>That YouTube video is too short.</div>
+        </div>
+        <div class="col-md-8 col-md-offset-2" id="instructions">
+            <div class="well">
+                <p><strong>Welcome!</strong></p>
+                <p>This demo uses Affectiva's JavaScript SDK to analyze your emotions as you watch a YouTube video. Before starting this demo, please make sure that your face is centered in the screen and the room lighting is adequate.</p>
+                <p><strong>Instructions:</strong></p>
+                <p>Search a YouTube video by keyword or enter its URL, and with your webcam turned on, you'll be able to see your emotions both during the video and during playback:</p>
+                
+                <div class="form-group">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="start-form" placeholder="Enter a URL or search YouTube here..." autofocus>
+                        <span class="input-group-btn">
+                            <button id="btn-start" class="btn btn-primary" type="button">Start</button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="list-group row" id="search-results"></div>
+            
+            <div class="well">
+                <p>Here are some selected videos to get you started:</p>
+                <div class="row">
+                    <div class="col-md-4 starter-container" id="example-0"></div>
+                    <div class="col-md-4 starter-container" id="example-1"></div>
+                    <div class="col-md-4 starter-container" id="example-2"></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 starter-container" id="example-3"></div>
+                    <div class="col-md-4 starter-container" id="example-4"></div>
+                    <div class="col-md-4 starter-container" id="example-5"></div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+</div>
 
- <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+<div class="row" id="video-container">
+    <div class="col-md-12 text-center">
+        <div id="player" style="pointer-events: none"></div>
+        <div id="svg-container">
+            <div class="row">
+                <div id="ul-wrapper" class="col-md-2">
+                    <ul id="nav">
+                    <li class="all buttons all-face all-box box-squared" id="all"><span>Show all</span></li>
+                    <li class="joy buttons smiling-face joy-box box-squared" id="joy" onClick="JSSDKDemo.responses(this.id)"><span>Joy</span></li>
+                    <li class="anger buttons angry-face anger-box box-squared" id="anger" onClick="JSSDKDemo.responses(this.id)"><span>Anger</span></li>
+                    <li class="disgust buttons disgusted-face disgust-box box-squared" id="disgust"  onClick="JSSDKDemo.responses(this.id)"><span>Disgust</span></li>
+                    <li class="contempt buttons contempt-face contempt-box box-squared" id="contempt"  onClick="JSSDKDemo.responses(this.id)"><span>Contempt</span></li>
+                    <li class="surprise buttons surprise-face surprise-box box-squared" id="surprise"  onClick="JSSDKDemo.responses(this.id)"><span>Surprise</span></li>
+                    </ul>
+                </div>
+                <div id="svg-wrapper" class="col-md-8 text-center">
+                    <svg id="svg-curve"></svg>
+                </div>
 
- 
-  <script src="javascript/p5.js"></script>
-    <script src="javascript/p5.dom.js"></script>
-
-  <script src="javascript/webcamSketch.js"></script>
-
-
-
-
+                <div id="play-again" class="col-md-2">
+                  <div class="well">
+                    <p>Frame capture complete!</p>
+                    <p><small>Watch the video synchronized with your emotions.</small></p>
+                    <p>&nbsp;</p>
+                    <button id="btn-play-again" class="btn btn-primary">Ok, got it</button>
+                  </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

@@ -1,66 +1,64 @@
-var capture;
-var snaps =[];
-var data = [];
-var video;
+/*
+   SDK Needs to create video and canvas nodes in the DOM in order to function
+   Here we are adding those nodes a predefined div.
+*/
+var divRoot = $("#affdex_elements")[0]; 
 
-function setup() {
-  //var cnv = createCanvas(320, 240);
-  video = createCapture(VIDEO);
-  video.size(320, 240);
-  video.position(0, 100);
-  
-}
+// The captured frame's width in pixels
+var width = 640;
 
-function draw() {
-	background(255);
-	//console.log(video);
-}
+// The captured frame's height in pixels
+var height = 480;
 
-function saveImage(){
-	snaps.push(video);
-//console.log(snaps);
-}
+/*
+   Face detector configuration - If not specified, defaults to 
+   affdex.FaceDetectorMode.LARGE_FACES
+   affdex.FaceDetectorMode.LARGE_FACES=Faces occupying large portions of the frame
+   affdex.FaceDetectorMode.SMALL_FACES=Faces occupying small portions of the frame
+*/
+var faceMode = affdex.FaceDetectorMode.LARGE_FACES;
 
- //apiKey: Replace this with your own Project Oxford Emotion API key, please do not use my key. I include it here so you can get up and running quickly but you can get your own key for free at https://www.projectoxford.ai/emotion 
- var apiKey = "69d79b998b684114ba55585b376c60ba";
- 
- //apiUrl: The base URL for the API. Find out what this is for other APIs via the API documentation
- var options = "perFrame";
- var apiUrl = "https://api.projectoxford.ai/emotion/v1.0/recognize";
- 
- $('#btn').click(function () {
-	 //file: The file that will be sent to the api
-	console.log("hit button");
+//Construct a CameraDetector and specify the image width / height and face detector mode.
+var detector = new affdex.CameraDetector(divRoot, width, height, faceMode);
 
-	 var file = document.getElementById('filename').files[0];
-	 
-	 CallAPI(file, apiUrl, apiKey);
- });
- 
- function CallAPI(file, apiUrl, apiKey)
- {
-	 $.ajax({
-	 url: apiUrl,
-	 beforeSend: function (xhrObj) {
-	 console.log(xhrObj);
-	 xhrObj.setRequestHeader("Content-Type", "application/octet-stream");
-	 xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", apiKey);
-	 },
-	 type: "POST",
-	 data: file,
-	 processData: false
-	 })
-	 .done(function (response) {
-	 ProcessResult(response);
-	 })
-	 .fail(function (error) {
-	 $("#response").text(error.getAllResponseHeaders());
-	 });
- }
- 
- function ProcessResult(response)
- {
- data = JSON.stringify(response);
- $("#response").text(data);
- console.log(data);
- }
+detector.addEventListener("onInitializeSuccess", function() {});
+detector.addEventListener("onInitializeFailure", function() {});
+
+/* 
+  onImageResults success is called when a frame is processed successfully and receives 3 parameters:
+  - Faces: Dictionary of faces in the frame keyed by the face id.
+           For each face id, the values of detected emotions, expressions, appearane metrics 
+           and coordinates of the feature points
+  - image: An imageData object containing the pixel values for the processed frame.
+  - timestamp: The timestamp of the captured image in seconds.
+*/
+detector.addEventListener("onImageResultsSuccess", function (faces, image, timestamp) {});
+
+/* 
+  onImageResults success receives 3 parameters:
+  - image: An imageData object containing the pixel values for the processed frame.
+  - timestamp: An imageData object contain the pixel values for the processed frame.
+  - err_detail: A string contains the encountered exception.
+*/
+detector.addEventListener("onImageResultsFailure", function (image, timestamp, err_detail) {});
+detector.addEventListener("onResetSuccess", function() {});
+detector.addEventListener("onResetFailure", function() {});
+detector.addEventListener("onStopSuccess", function() {});
+detector.addEventListener("onStopFailure", function() {});
+
+detector.addEventListener("onWebcamConnectSuccess", function() {
+	console.log("I was able to connect to the camera successfully.");
+});
+
+detector.addEventListener("onWebcamConnectFailure", function() {
+	console.log("I've failed to connect to the camera :(");
+});
+
+
+detector.detectAllExpressions();
+detector.detectAllEmotions();
+detector.detectAllEmojis();
+detector.detectAllAppearance();
+
+detector.start();
+
