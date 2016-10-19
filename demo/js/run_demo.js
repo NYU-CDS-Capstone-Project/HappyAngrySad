@@ -85,7 +85,7 @@ var JSSDKDemo = (function() {
             // get the time as close to the actual time of the frame as possible
             //  account for time spent buffering
             var fake_timestamp = get_current_time_adjusted();
-            console.log( fake_timestamp);
+            console.log(fake_timestamp);
             console.log(faces);
 
             var cloudant_USER = "happyangrysad";
