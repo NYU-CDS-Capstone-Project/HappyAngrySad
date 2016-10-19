@@ -8,9 +8,9 @@ Current content delivery systems fail to utilize emotional statuses of users. We
 
 ## Tools:
 
-Emotional Classification: Affectiva API using Javascript SDK
-Web Development Framework: Flask
-Database: NoSQL Couchdb
+- Emotional Classification: Affectiva API using Javascript SDK
+- Web Development Framework: Flask 
+- Database: NoSQL Couchdb
 
 ## Modeling
 Please see modeling/README.md
