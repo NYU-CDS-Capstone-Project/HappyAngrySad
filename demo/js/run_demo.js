@@ -88,6 +88,33 @@ var JSSDKDemo = (function() {
             console.log( fake_timestamp);
             console.log(faces);
 
+            var cloudant_USER = "happyangrysad";
+            var cloudant_DB = 'emotions';
+            var cloudant_KEY = "wonestedidestrowillygeth";
+            var cloudant_PASSWORD = "e635d215e38d37d2847079c1ae4b9584193e24de";
+            var URL = "https://" + cloudant_USER + ".cloudant.com/" + cloudant_DB;
+            $.ajax({
+                url : URL,
+                type: "POST",
+                json: true,
+                auth: {
+                    user: cloudant_KEY,
+                    pass: cloudant_PASSWORD
+                },
+                body : faces,
+                //dataType: 'jsonp',
+                success: function(data, textStatus, jqXHR)
+                {
+                    console.log("success Posting");
+                    //data - response from server
+                },
+                error: function (jqXHR, textStatus, errorThrown)
+                {
+                console.log("fail");
+
+                }
+            });
+
             if (capture_frames) {
                 if (frames_since_last_face > 100 && face_visible) {
                     face_visible = false;
@@ -414,6 +441,7 @@ var JSSDKDemo = (function() {
         });
     };
     
+
     var get_current_time_adjusted = function() {
         return Date.now() - time_buffering_ms;
     };
