@@ -11,6 +11,16 @@ $(document).ready(function() {
     }
 });
 
+function randomString(len) {
+    charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var randomString = '';
+    for (var i = 0; i < len; i++) {
+        var randomPoz = Math.floor(Math.random() * charSet.length);
+        randomString += charSet.substring(randomPoz,randomPoz+1);
+    }
+    return randomString;
+}  
+
 var JSSDKDemo = (function() {
     var detector = null;
     var capture_frames = false;
@@ -47,6 +57,11 @@ var JSSDKDemo = (function() {
     var cursor_interval = null;
     
     var API_KEY = "AIzaSyCdQbLORhF7PGVJ7DG1tkoVJGgDYwA_o0M";
+
+    let lastPostToServerTime = 0;
+
+    const session_id = randomString(10)
+    let next_frame_id = 0
 
     var run = function() {
         var facevideo_node = document.getElementById("facevideo-node");
@@ -85,36 +100,30 @@ var JSSDKDemo = (function() {
             // get the time as close to the actual time of the frame as possible
             //  account for time spent buffering
             var fake_timestamp = get_current_time_adjusted();
-            console.log(fake_timestamp);
-            console.log(faces);
 
-            $.get( "/getmethod/<javascript_data>",faces );
-            // var cloudant_USER = "happyangrysad";
-            // var cloudant_DB = 'emotions';
-            // var cloudant_KEY = "wonestedidestrowillygeth";
-            // var cloudant_PASSWORD = "e635d215e38d37d2847079c1ae4b9584193e24de";
-            // var URL = "https://" + cloudant_USER + ".cloudant.com/" + cloudant_DB;
-            // $.ajax({
-            //     url : URL,
-            //     type: "POST",
-            //     json: true,
-            //     auth: {
-            //         user: cloudant_KEY,
-            //         pass: cloudant_PASSWORD
-            //     },
-            //     body : faces,
-            //     //dataType: 'jsonp',
-            //     success: function(data, textStatus, jqXHR)
-            //     {
-            //         console.log("success Posting");
-            //         //data - response from server
-            //     },
-            //     error: function (jqXHR, textStatus, errorThrown)
-            //     {
-            //     console.log("fail");
 
-            //     }
-            // });
+            if (Date.now() > lastPostToServerTime + 5000) {
+                lastPostToServerTime = Date.now();
+
+                $.ajax({
+                    url: "/postFaces",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ 
+                        faces: faces,
+                        id: session_id + "-" + (next_frame_id++)
+                    }),
+                    // processData: false,
+                    success: function(data, textStatus, jqXHR)
+                    {
+                        console.log("success Posting");
+                    },
+                    error: function (jqXHR, textStatus, errorThrown)
+                    {
+                        console.log("fail");
+                    },                    
+                });
+            }
 
             if (capture_frames) {
                 if (frames_since_last_face > 100 && face_visible) {
