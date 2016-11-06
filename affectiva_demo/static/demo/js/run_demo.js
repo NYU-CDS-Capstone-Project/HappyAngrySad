@@ -11,16 +11,6 @@ $(document).ready(function() {
     }
 });
 
-function randomString(len) {
-    charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    var randomString = '';
-    for (var i = 0; i < len; i++) {
-        var randomPoz = Math.floor(Math.random() * charSet.length);
-        randomString += charSet.substring(randomPoz,randomPoz+1);
-    }
-    return randomString;
-}  
-
 var JSSDKDemo = (function() {
     var detector = null;
     var capture_frames = false;
@@ -60,8 +50,50 @@ var JSSDKDemo = (function() {
 
     let lastPostToServerTime = 0;
 
-    const session_id = randomString(10)
-    let next_frame_id = 0
+    let view_id = null;
+
+    let currentAggregate = null;
+    let totalFrames = 0;
+    let framesSkipped = 0;
+
+    var resetAggregate = function () {
+        totalFrames = 0;
+        framesSkipped = 0;
+        currentAggregate = null;
+    }
+
+    var postAggregate = function() {
+        if (currentAggregate == null) {
+            return;
+        }
+
+        const numFrames = totalFrames - framesSkipped;
+
+        for (const key in currentAggregate.emotions) {
+            if (currentAggregate.emotions.hasOwnProperty(key)) {
+                currentAggregate.emotions[key] /= numFrames
+            }
+        }
+        currentAggregate['totalFrames'] = totalFrames
+        currentAggregate['framesSkipped'] = framesSkipped
+
+        $.ajax({
+            url: "/postFaces",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ 
+                faces: currentAggregate,
+                view_id: view_id
+            }),
+            success: function() {},
+            error: function (jqXHR, textStatus, errorThrown)
+            {
+                console.log("failed to post to server");
+            },                    
+        });
+
+        resetAggregate();
+    }
 
     var run = function() {
         var facevideo_node = document.getElementById("facevideo-node");
@@ -73,7 +105,6 @@ var JSSDKDemo = (function() {
         detector.detectAllEmojis();
         detector.detectAllAppearance();
 
-        
         detector.addEventListener("onWebcamConnectSuccess", function() {
             show_message("msg-starting-webcam");
         });
@@ -97,33 +128,35 @@ var JSSDKDemo = (function() {
         });
         
         detector.addEventListener("onImageResultsSuccess", function(faces, image, timestamp) {
-            // get the time as close to the actual time of the frame as possible
-            //  account for time spent buffering
-            var fake_timestamp = get_current_time_adjusted();
+            totalFrames++;
+            if (view_id != null && faces.length == 1) {
+                const face = faces[0];
+                if (currentAggregate == null) {
+                    currentAggregate = {
+                        emotions: face.emotions,
+                        appearance: face.appearance
+                    }
+                } else {
+                    for (const key in face.emotions) {
+                        if (face.emotions.hasOwnProperty(key)) {
+                            currentAggregate.emotions[key] += face.emotions[key];
+                        }
+                    }
+
+                }
+            } else {
+                framesSkipped++;
+            }
 
 
             if (Date.now() > lastPostToServerTime + 5000) {
+                postAggregate();
                 lastPostToServerTime = Date.now();
-
-                $.ajax({
-                    url: "/postFaces",
-                    type: "POST",
-                    contentType: "application/json",
-                    data: JSON.stringify({ 
-                        faces: faces,
-                        id: session_id + "-" + (next_frame_id++)
-                    }),
-                    // processData: false,
-                    success: function(data, textStatus, jqXHR)
-                    {
-                        console.log("success Posting");
-                    },
-                    error: function (jqXHR, textStatus, errorThrown)
-                    {
-                        console.log("fail");
-                    },                    
-                });
             }
+
+            // get the time as close to the actual time of the frame as possible
+            //  account for time spent buffering
+            var fake_timestamp = get_current_time_adjusted();            
 
             if (capture_frames) {
                 if (frames_since_last_face > 100 && face_visible) {
@@ -147,12 +180,13 @@ var JSSDKDemo = (function() {
                         processed_frames[idx].push([fake_timestamp, 0]);
                     });
                 }
-                console.log(processed_frames);
                 update_plot();
             }
         });
     };
         
+
+
     var start_button_click = function(event) {
         $(".demo-message").hide();
         
@@ -180,6 +214,24 @@ var JSSDKDemo = (function() {
             
             if (typeof video_id !== "undefined") {
                 player.loadVideoById(video_id, 0);
+                resetAggregate();
+                $.ajax({
+                    url: "/startView",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ 
+                        video_id: video_id,
+                    }),
+                    success: function(data, textStatus, jqXHR)
+                    {
+                        console.log("Created new view: " + data);
+                        view_id = data;
+                    },
+                    error: function (jqXHR, textStatus, errorThrown)
+                    {
+                        console.log("fail: " + textStatus);
+                    },                    
+                });
             }
         }
     };
@@ -595,6 +647,30 @@ var JSSDKDemo = (function() {
                         }
                         player.seekTo(0);
                         player.pauseVideo();
+                        
+                        if (view_id != null) {
+                            postAggregate();
+
+                            $.ajax({
+                                url: "/finishView",
+                                type: "POST",
+                                contentType: "application/json",
+                                data: JSON.stringify({ 
+                                    view_id: view_id,
+                                }),
+                                success: function(data, textStatus, jqXHR)
+                                {
+                                    console.log("View has been finalized: " + data);
+                                },
+                                error: function (jqXHR, textStatus, errorThrown)
+                                {
+                                    console.log("fail: " + textStatus);
+                                },                    
+                            });
+                            view_id = null;
+                        } else {
+                            console.log("Warning: view_id is null when video ended");
+                        }
                     } else if (status === YT.PlayerState.CUED && video_duration_sec > VIDEO_LENGTH_THRESHOLD && !finished_watching) { // loss of Internet while playing video
                         finished_watching = true;
                         player.stopVideo();

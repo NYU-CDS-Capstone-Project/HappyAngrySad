@@ -22,43 +22,54 @@ def login():
         email = request.form['email']   
         if email is None:
             return render_template('login.html')
-        if data.userExists(email):
-            print("User " + email + " exists! Redirecting to home page")
-        else:
-            print("User " + email + " doesn't exist, will create")
+        if not data.userExists(email):
             data.createUser(email)
-
         response = redirect(url_for('index'))
         response.set_cookie('username', email)
         return response
-
     else:
         return render_template('login.html')
 
 @app.route('/logout', methods=['GET'])
 def logout():
     response = redirect(url_for('login'))
-    response.set_cookie('username', 'OLOLO')
+    response.set_cookie('username', '')
     return response
 
 @app.route("/")
 def index():
-    # Do we have the auth cookie? 
     username = request.cookies.get('username')
     if not data.userExists(username):
         return redirect(url_for('login'))
     if username is None:
-        print("Auth cookie not set, redirecting to login page")
         return redirect(url_for('login'))
-    print("Auth cookie it set, login=" + username)
     return render_template('index.html', username=username)
 
 @app.route("/postFaces", methods=["POST"])
 def postFaces():
     faces = request.json['faces']
-    id = request.json['id']
-    data.saveFaces(id, faces)
-    return "postFaces succeeded!"
+    view_id = request.json['view_id']
+
+    view = data.loadView(view_id)
+    view['frames'].append(faces)
+    data.saveView(view)
+
+    return "success"
+
+@app.route("/startView", methods=["POST"])
+def startView():
+    video_id = request.json['video_id']
+    view_id = data.createView(video_id)
+    return view_id
+
+@app.route("/finishView", methods=["POST"])
+def finishView():
+    username = request.cookies.get('username')
+    view_id = request.json['view_id']
+    user = data.loadUser(username)
+    user['views'].append(view_id)
+    data.saveUser(user)
+    return "success"
 
 # launch
 if __name__ == "__main__":
