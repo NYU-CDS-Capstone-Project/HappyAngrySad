@@ -1,0 +1,4 @@
+
+*.pyc
+
+affectiva_demo/templates/index.html
