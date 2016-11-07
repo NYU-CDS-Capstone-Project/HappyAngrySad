@@ -69,11 +69,16 @@ var JSSDKDemo = (function() {
 
         const numFrames = totalFrames - framesSkipped;
 
-        for (const key in currentAggregate.emotions) {
+        for (let key in currentAggregate.emotions) {
             if (currentAggregate.emotions.hasOwnProperty(key)) {
                 currentAggregate.emotions[key] /= numFrames
             }
         }
+        for (let key in currentAggregate.emojis) {
+            if (currentAggregate.emojis.hasOwnProperty(key)) {
+                currentAggregate.emojis[key] /= numFrames
+            }
+        }        
         currentAggregate['totalFrames'] = totalFrames
         currentAggregate['framesSkipped'] = framesSkipped
 
@@ -134,16 +139,22 @@ var JSSDKDemo = (function() {
                 if (currentAggregate == null) {
                     currentAggregate = {
                         emotions: face.emotions,
-                        appearance: face.appearance
+                        emojis: face.emojis,
+                        appearance: face.appearance,
                     }
                 } else {
-                    for (const key in face.emotions) {
+                    for (let key in face.emotions) {
                         if (face.emotions.hasOwnProperty(key)) {
                             currentAggregate.emotions[key] += face.emotions[key];
                         }
                     }
-
+                    for (let key in face.emojis) {
+                        if (face.emojis.hasOwnProperty(key)) {
+                            currentAggregate.emojis[key] += face.emojis[key];
+                        }
+                    }
                 }
+                delete currentAggregate.emojis.dominantEmoji;
             } else {
                 framesSkipped++;
             }
