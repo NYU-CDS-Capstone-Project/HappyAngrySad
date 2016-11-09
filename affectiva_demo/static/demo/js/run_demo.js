@@ -48,6 +48,8 @@ var JSSDKDemo = (function() {
     
     var API_KEY = "AIzaSyCdQbLORhF7PGVJ7DG1tkoVJGgDYwA_o0M";
 
+    var video_id = "Pc7BnT5X1tw";
+
     let lastPostToServerTime = 0;
 
     let view_id = null;
@@ -129,7 +131,31 @@ var JSSDKDemo = (function() {
         });
         
         detector.addEventListener("onInitializeSuccess", function() {
-            show_message("instructions");
+            // show_message("instructions");
+            var video_id = "Pc7BnT5X1tw";
+            player.loadVideoById(video_id, 0);
+
+            console.log(player);
+                
+            resetAggregate();
+                
+            $.ajax({
+                url: "/startView",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ 
+                    video_id: video_id,
+                }),
+                success: function(data, textStatus, jqXHR)
+                {
+                    console.log("Created new view: " + data);
+                    view_id = data;
+                },
+                error: function (jqXHR, textStatus, errorThrown)
+                {
+                    console.log("fail: " + textStatus);
+                },                    
+            });
         });
         
         detector.addEventListener("onImageResultsSuccess", function(faces, image, timestamp) {
@@ -195,57 +221,58 @@ var JSSDKDemo = (function() {
             }
         });
     };
-        
 
-
-    var start_button_click = function(event) {
-        $(".demo-message").hide();
+    // var start_button_click = function(event) {
+    //     $(".demo-message").hide();
         
-        if (ready_to_accept_input) {
-            ready_to_accept_input = false;
-            var video_id;
+    //     if (ready_to_accept_input) {
+    //         ready_to_accept_input = false;
+    //         var video_id = ytvidid;
             
-            if (event.data == null) {
-                var blob = document.getElementById("start-form").value;
+    //         if (event.data == null) {
+    //             var blob = document.getElementById("start-form").value;
                 
-                if (blob === "" || blob.includes("http://") || blob.includes("https://")) { // treat as URL
-                    video_id = blob.split("v=")[1] || "";
-                    var ampersandPosition = video_id.indexOf("&");
-                    if (ampersandPosition !== -1) {
-                        video_id = video_id.substring(0, ampersandPosition);
-                    }
-                } else { // treat as search
-                    var url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=" + API_KEY + "&maxResults=10&safeSearch=strict&q=" + blob;
-                    http_get_async(url, add_to_search_results);
-                }
+    //             if (blob === "" || blob.includes("http://") || blob.includes("https://")) { // treat as URL
+    //                 video_id = blob.split("v=")[1] || "";
+    //                 var ampersandPosition = video_id.indexOf("&");
+    //                 if (ampersandPosition !== -1) {
+    //                     video_id = video_id.substring(0, ampersandPosition);
+    //                 }
+    //             } else { // treat as search
+    //                 var url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=" + API_KEY + "&maxResults=10&safeSearch=strict&q=" + blob;
+    //                 http_get_async(url, add_to_search_results);
+    //             }
                 
-            } else { // play the video that was clicked
-                video_id = event.data.id;
-            }
+    //         } else { // play the video that was clicked
+    //             video_id = event.data.id;
+    //         }
             
-            if (typeof video_id !== "undefined") {
-                player.loadVideoById(video_id, 0);
-                resetAggregate();
-                $.ajax({
-                    url: "/startView",
-                    type: "POST",
-                    contentType: "application/json",
-                    data: JSON.stringify({ 
-                        video_id: video_id,
-                    }),
-                    success: function(data, textStatus, jqXHR)
-                    {
-                        console.log("Created new view: " + data);
-                        view_id = data;
-                    },
-                    error: function (jqXHR, textStatus, errorThrown)
-                    {
-                        console.log("fail: " + textStatus);
-                    },                    
-                });
-            }
-        }
-    };
+    //         if (typeof video_id !== "undefined") {
+                
+    //             player.loadVideoById(video_id, 0);
+                
+    //             resetAggregate();
+                
+    //             $.ajax({
+    //                 url: "/startView",
+    //                 type: "POST",
+    //                 contentType: "application/json",
+    //                 data: JSON.stringify({ 
+    //                     video_id: video_id,
+    //                 }),
+    //                 success: function(data, textStatus, jqXHR)
+    //                 {
+    //                     console.log("Created new view: " + data);
+    //                     view_id = data;
+    //                 },
+    //                 error: function (jqXHR, textStatus, errorThrown)
+    //                 {
+    //                     console.log("fail: " + textStatus);
+    //                 },                    
+    //             });
+    //         }
+    //     }
+    // };
     
     var begin_capture = function() {
         // take care of gap at beginning
@@ -470,7 +497,7 @@ var JSSDKDemo = (function() {
             result.className = "list-group-item";
             result.innerHTML = '<table><tr><td><img class="thumbnail" id="' + id + '" src="' + s.thumbnails.medium.url + '" style="margin-right:15px"></td><td valign="top"><h3>' + s.title + '</h3><span>' + s.description + '</span></td></tr></table>';
             $("#search-results").append(result);
-            $("#"+id).click({id: id}, start_button_click);
+            // $("#"+id).click({id: id}, start_button_click);
         }
         
         // show a message for when no videos were found
@@ -490,30 +517,30 @@ var JSSDKDemo = (function() {
         ready_to_accept_input = true;
     };
     
-    var video_ids = ["ugo7Y2lRsxc", "Pc7BnT5X1tw", "IV_ef2mm4G0", "dlNO2trC-mk", "ugn_qmQ0NFo", "o2P5E7cFt9s"];
+    // var video_ids = ["ugo7Y2lRsxc", "Pc7BnT5X1tw", "IV_ef2mm4G0", "dlNO2trC-mk", "ugn_qmQ0NFo", "o2P5E7cFt9s"];
     
-    var populate_examples = function() {
-        video_ids.forEach(function(element, index) {
-            var id = "#example-" + index;
-            var thumbnail_url = "https://i.ytimg.com/vi/" + video_ids[index] + "/mqdefault.jpg";
-            $(id)[0].style.backgroundImage = "url(" + thumbnail_url + ")";
-            $(id).click({id: video_ids[index]}, start_button_click);
+    // var populate_examples = function() {
+    //     video_ids.forEach(function(element, index) {
+    //         var id = "#example-" + index;
+    //         var thumbnail_url = "https://i.ytimg.com/vi/" + video_ids[index] + "/mqdefault.jpg";
+    //         $(id)[0].style.backgroundImage = "url(" + thumbnail_url + ")";
+    //         $(id).click({id: video_ids[index]}, start_button_click);
             
-            var url = "https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" + element + "&key=" + API_KEY;
-            http_get_async(url, function(text) {
-                var results = JSON.parse(text);
-                var title = results.items[0].snippet.title;
-                $(id).hover(function() {
-                    this.style.backgroundBlendMode = "overlay";
-                    $(this)[0].innerText = title;
-                }, function(){
-                    this.style.backgroundBlendMode = "initial";
-                    $(this)[0].innerText = "";
-                });
-            });
-        });
-    };
-    
+    //         var url = "https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" + element + "&key=" + API_KEY;
+    //         http_get_async(url, function(text) {
+    //             var results = JSON.parse(text);
+    //             var title = results.items[0].snippet.title;
+    //             $(id).hover(function() {
+    //                 this.style.backgroundBlendMode = "overlay";
+    //                 $(this)[0].innerText = title;
+    //             }, function(){
+    //                 this.style.backgroundBlendMode = "initial";
+    //                 $(this)[0].innerText = "";
+    //             });
+    //         });
+    //     });
+    // };
+
 
     var get_current_time_adjusted = function() {
         return Date.now() - time_buffering_ms;
@@ -546,7 +573,7 @@ var JSSDKDemo = (function() {
     
     return {
         init: function() {
-            $("#btn-start").click(start_button_click);
+            // $("#btn-start").click(start_button_click);
             $("#btn-play-again").one("click", transition_to_playback);
             
             // add click functionality to enter button
@@ -575,7 +602,7 @@ var JSSDKDemo = (function() {
             });
             
             // populate sample videos
-            populate_examples();
+            // populate_examples();
             
             // load IFrame Player API code asynchronously
             setTimeout(function() {
@@ -679,6 +706,10 @@ var JSSDKDemo = (function() {
                                 },                    
                             });
                             view_id = null;
+                            
+                            video_id = "t8IFgEO6Np4";
+                            player.loadVideoById(video_id, 0);
+
                         } else {
                             console.log("Warning: view_id is null when video ended");
                         }
@@ -687,6 +718,7 @@ var JSSDKDemo = (function() {
                         player.stopVideo();
                         clearTimeout(stop_capture_timeout);
                         detector.stop();
+
                         no_internet();
                     }
                     

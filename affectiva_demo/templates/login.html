@@ -1,16 +1,22 @@
 <html>
 <head>
 	<title>Welcome! Please log in.</title></head>
-	<link rel="stylesheet" href="static/bootstrap-darkly.min.css" />
+	<link rel="stylesheet" href="static/bootstrap-flatly.min.css" />
 	<link href="static/demo.css" rel="stylesheet" type="text/css" />
 <body>
 <form action="/login" method="post">
 
 <div id="demo-setup">
     <div id="messages" class="row">
-        <div class="col-md-3 col-md-offset-4">
+        <div class="col-md-5 col-md-offset-4">
             <div class="well">
                 <p><strong>Welcome!</strong></p>
+                <p><strong>What?</strong> -- An application that classifies content in relation to users emotional reaction to it.</p>
+                <p><strong>Why?</strong> -- This is a project NYU Masters Capstone class focused on understanding</p>
+                <p><strong>How?</strong> -- We utilize a Affectiva Emotion API to understand your emotional reaction to a fun Youtube video. We use that information to serve you the best personalized content.</p>
+                <p><strong>Disclaimer</strong> -- By entering this site you agree to participate in academic research and don't hold any creators or associated individuals responsible in any way.</p>
+            </div>
+            <div class="well">
                 <p>Please enter your email:</p>
                 <div class="form-group">
                     <div class="input-group">
@@ -22,6 +28,7 @@
                 </div>
             </div>
         </div>
+    </div>
 </div>
 </form>
 
