@@ -5,13 +5,6 @@ from requests.auth import HTTPBasicAuth
 base_url = "https://happyangrysad.cloudant.com/"
 jsonContentHeaders = {'content-type': 'application/json'}
 
-usersDbAuth = HTTPBasicAuth(
-    'dsterentrandellesserywhy', '79ca3b2eba8d9575d50e8ba75c92ec18260bd487')
-emotionsDbAuth = HTTPBasicAuth(
-    'wonestedidestrowillygeth', 'e635d215e38d37d2847079c1ae4b9584193e24de')
-viewsDbAuth = HTTPBasicAuth(
-    'ateryinummothemedenterne', '6e0320b2deac89677bdd580dc48500ad917afc9e')
-
 
 def post(url, data, auth, headers, expected_code):
     '''
