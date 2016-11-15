@@ -1,6 +1,7 @@
 import json
 import requests
 from requests.auth import HTTPBasicAuth
+import feature_eng as fe
 
 base_url = "https://happyangrysad.cloudant.com/"
 jsonContentHeaders = {'content-type': 'application/json'}
@@ -11,6 +12,8 @@ emotionsDbAuth = HTTPBasicAuth(
     'wonestedidestrowillygeth', 'e635d215e38d37d2847079c1ae4b9584193e24de')
 viewsDbAuth = HTTPBasicAuth(
     'ateryinummothemedenterne', '6e0320b2deac89677bdd580dc48500ad917afc9e')
+userItemDBAuth = HTTPBasicAuth(
+    'atentediledithereetyncen', '87646444b19752709b3ccff9c0516c1f0b1511ff')
 
 
 def post(url, data, auth, headers, expected_code):
@@ -99,7 +102,8 @@ def createUser(username):
     '''
     doc = {
         'login': username,
-        'views': []
+        'views': [],
+        'dirty': False
     }
     post('users', doc, usersDbAuth, jsonContentHeaders, 201)
 
@@ -134,7 +138,6 @@ def loadView(id):
         json view record
     '''
     r = get("views/" + id, viewsDbAuth)
-    print(r.json())
     return r.json()
 
 
@@ -165,7 +168,7 @@ def loadUser(username):
                 "$eq": username
             }
         },
-        "fields": ["login", "views", "_id", "_rev"]
+        "fields": ["login", "views", "_id", "_rev", "recommendations"]
     }
     r = post('users/_find', query, usersDbAuth, jsonContentHeaders, 200)
     if (len(r.json()["docs"]) != 1):
@@ -183,3 +186,56 @@ def saveUser(user):
         n/a
     '''
     put("users/" + user['_id'], user, usersDbAuth)
+
+
+def getDirtyUsers():
+    query = {
+        "selector": {
+            "dirty": {
+                "$eq": True
+            }
+        },
+        "fields": ["login" ]
+    }
+    r = post('users/_find', query, usersDbAuth, jsonContentHeaders, 200)
+    return  r.json()["docs"]
+
+
+def computeViewStats(view_id):
+    '''
+    Purpose:
+        Compute the summary statistics of the view for easy modeling
+    Parameters:
+        view_id: the id from the AJAX call for updating the User record
+        when the view is finished
+    Returns:
+        n/a
+    '''
+    # get view from DB
+    view = loadView(view_id)
+    # calculate the summary statistics for the view
+    stats = fe.computeStats(view)
+    # append view stats to doc
+    view['frame_stats'] = stats
+    # update view on Cloudant
+    put("views/" + view['_id'], view, viewsDbAuth)
+    return stats
+
+
+def updateGraph(stats, video_id, user_id):
+    '''
+    Purpose:
+        Create a new document in the Cloudant DB representing the graph
+    Parameters:
+        view_id: the id from the AJAX call for updating the User record
+        when the view is finished
+        user_id: the user's id
+    Returns:
+        n/a
+    '''
+    doc = {
+        'video_id': video_id,
+        'user_id': user_id,
+        'frame_stats': stats
+    }
+    post('useritem', doc, userItemDBAuth, jsonContentHeaders, 201)
