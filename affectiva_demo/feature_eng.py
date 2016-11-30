@@ -8,8 +8,6 @@ def computeStats(view):
 
 
 def frames_to_df(view):
-    # frame_items = ['emojis', 'appearance',
-    #                'totalFrames', 'emotions', 'framesSkipped']
     frame_items = ['emojis', 'totalFrames', 'emotions', 'framesSkipped']
     dfs = []
     for frame_item in frame_items:
@@ -26,11 +24,11 @@ def frames_to_df(view):
 
 
 def computWeights(df):
-    print df
+    # print df
     stats = {}
     for col in df.columns:
         tmp_df = df[col] * df.totalFrames
         val = tmp_df.sum()/df.totalFrames.sum()
         stats[col] = val
-    print stats
+    # print stats
     return stats

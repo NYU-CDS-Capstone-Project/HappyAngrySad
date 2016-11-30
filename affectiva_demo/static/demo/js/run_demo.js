@@ -215,7 +215,7 @@ var JSSDKDemo = (function() {
                         video_id = video_id.substring(0, ampersandPosition);
                     }
                 } else { // treat as search
-                    var url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=" + API_KEY + "&maxResults=10&safeSearch=strict&q=" + blob;
+                    var url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoDuration=short&order=viewCount&key=" + API_KEY + "&maxResults=10&safeSearch=strict&q=" + blob;
                     http_get_async(url, add_to_search_results);
                 }
                 
@@ -418,25 +418,7 @@ var JSSDKDemo = (function() {
 
     var transition_to_playback = function() {
         $("#lightbox").fadeOut(500);
-        $("#btn-play-again").fadeOut(500, function() {
-            $(this).replaceWith(function() {
-                return $("<button id='btn-play-again' class='btn btn-primary'>Try again</button>").fadeIn(500, function() {
-                    document.onkeypress = function(event) {
-                        if ((event || window.event).charCode == 32) {
-                            if (playing) {
-                                player.pauseVideo();
-                            } else {
-                                player.playVideo();
-                            }
-                        }
-                    };
-
-                    $("#btn-play-again").one("click", function() {
-                        window.location.reload(false);
-                    });
-                });
-            });
-        });
+        window.location.reload(false);
     };
     
     var no_internet = function() {
@@ -518,7 +500,10 @@ var JSSDKDemo = (function() {
             
             var url = "https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" + element + "&key=" + API_KEY;
             http_get_async(url, function(text) {
+                console.log("response from youtube");
                 var results = JSON.parse(text);
+                console.log(results);
+
                 var title = results.items[0].snippet.title;
                 $(id).hover(function() {
                     this.style.backgroundBlendMode = "overlay";

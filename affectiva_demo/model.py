@@ -3,86 +3,99 @@ import numpy as np
 import json
 import requests
 from requests.auth import HTTPBasicAuth
-import graphlab as gl
+import networkx as nx
 import data
+from collections import OrderedDict
+import random
 
 
-base_url = "https://happyangrysad.cloudant.com/"
-jsonContentHeaders = {'content-type': 'application/json'}
-
-usersDbAuth = HTTPBasicAuth(
-    'dsterentrandellesserywhy', '79ca3b2eba8d9575d50e8ba75c92ec18260bd487')
-emotionsDbAuth = HTTPBasicAuth(
-    'wonestedidestrowillygeth', 'e635d215e38d37d2847079c1ae4b9584193e24de')
-viewsDbAuth = HTTPBasicAuth(
-    'ateryinummothemedenterne', '6e0320b2deac89677bdd580dc48500ad917afc9e')
-
-# def buildDirtyList():
-#     # get list of users marked as dirty sorted by people currntly using the app
-#     # could it be a
-#     if currentUsers is True:
-#         # compute recommendations for current users else:
-#         # compute recommendation for most recent user
-
-
-def userGetDirtyUsers():
-    # TODO: we need to update this to get users that are marked dirty.
-    # buildDirtyList()
-    query = {
-        "selector": {
-            "login": {
-                "$eq": 'mattyd2@gmail.com'
-            },
-            "dirty": {
-                "$eq": False
-            }
-        },
-        "fields": ["login", "views"]
-    }
-    r = data.post('users/_find', query, usersDbAuth, jsonContentHeaders, 200)
-    return r.json()["docs"]
+def getNeigbors(fun, st):
+    if st == [] or (st is None):
+        return []
+    if type(st) == str:
+        return fun(st)
+    if type(st) == unicode:
+        return fun(str(st))
+    if type(st) == list and len(st) > 0 and type(st[0]) == list:
+        st = st[0]
+    # print "ST"
+    # print st
+    # print type(st)
+    final = [fun(item) for item in st]
+    if any(isinstance(i, list) for i in final):  # check to see if is a list
+        final = [val for sublist in final for val in sublist]  # flatten
+    final = list(set(final))  # note this fucks up order
+    if final is None:
+        return []
+    return final
 
 
-def getVidIdsfromViewIds(viewId):
-    query = {
-        "selector": {
-            "_id": {
-                "$eq": viewId
-            }
-        },
-        "fields": ["video", "frames"]
-    }
-    r = data.post('views/_find', query, viewsDbAuth, jsonContentHeaders, 200)
-    print r.json()["docs"]
-    return r.json()["docs"][0]['frames']
+def getImpact(user, content, G):
+    newPrediction = []
+    impactedPredictions = []
+    A = set([user])
+
+    B = set(G.neighbors(content))
+
+    C = set(getNeigbors(G.neighbors, getNeigbors(G.neighbors, user)))
+    C.remove(user)
+    abcUnion = (A | B | C)
+    for someUser in abcUnion:
+        before = G.neighbors(someUser)
+        before = getNeigbors(G.neighbors, before).remove(someUser)
+        before = getNeigbors(G.neighbors, before)
+        before = [item for item in before if item not in G.neighbors(someUser)]
+        if someUser in A:
+            after = getNeigbors(
+                G.neighbors, getNeigbors(G.neighbors, content))
+            after = [
+                item for item in after if item not in G.neighbors(content)]
+            after.remove(content)
+        elif someUser in B:
+            after = set(getNeigbors(G.neighbors, user)) - \
+                set(getNeigbors(G.neighbors, someUser))
+        elif someUser in C:
+            after = content
+        for someContent in (set(after) or set(before)):
+            impactedPredictions.append((someUser, someContent))
+    #     for item in (set(after) - set(before)):
+    #         newPrediction.append( (someUser,someContent))
+    # return impactedPredictions, newPrediction
+    return len(impactedPredictions)
 
 
-def getContentIds():
-    dirtyUsers = userGetDirtyUsers()
-    userEmotions = {}
-    for dUser in dirtyUsers:
-        userEmotions['user'] = {}
-        userEmotions['user']['user_id'] = dUser['login']
-        views = []
-        for viewId in dUser['views']:
-            view = getVidIdsfromViewIds(viewId)
-            counter = 0
-            frames = 0
-            for i in view:
-                wghtLaugh = 0
-                frames += float(i['totalFrames'])
-                if 'emojis' in i:
-                    # print i
-                    laughing = float(i['emojis']['laughing'])
-                    print('laughing')
-                    print(laughing)
-                    print('frames')
-                    print(frames)
-                    wghtLaugh += float(i['totalFrames']) * laughing
-                    print('wghtLaugh')
-                    print(wghtLaugh)
-                    views.append(wghtLaugh / frames)
-        userEmotions['user']['laughing'] = views
-    print(userEmotions)
-    return views
+def checkUnwatched(userItemVids):
+    allVids = data.getAllContentIds()
+    allVidsSet = set()
+    for i in allVids:
+        allVidsSet.add(str(i['video_id']))
+    unWatchedVids = allVidsSet - userItemVids
+    return unWatchedVids
 
+
+def getBestRec(user):
+    G = data.getGraph()
+    userItemVidObjective = OrderedDict() # for getting top impacted user content pairs
+    userItemVids = []
+    numImpactedRecs = []
+    if user not in G.nodes():
+        return
+    visited = set(G.neighbors(user))
+    userItemVids = set()
+    for i in G.nodes(data=True):  # get list of all watched vids
+        if i[1]['type'] == 'video':
+            userItemVids.add(i[0])
+    unWatchedVids = checkUnwatched(userItemVids)
+    numUnWatchedVids = len(unWatchedVids)
+    if numUnWatchedVids >= 6:
+        return random.sample(list(unWatchedVids), 6)
+    else:
+        for product in list(userItemVids - visited):
+            userItemVidObjective[product] = getImpact(user, product, G)
+        userItemVnseenvids = userItemVidObjective.keys()
+        scores = userItemVidObjective.values()
+        sorted_idx = np.argsort(scores)
+        sorted_words = [userItemVnseenvids[ii] for ii in sorted_idx[::-1]]
+        numRecomsToUse = 6 - numUnWatchedVids
+        finalrecs = random.sample(sorted_words[:15], numRecomsToUse) + list(unWatchedVids)
+        return finalrecs

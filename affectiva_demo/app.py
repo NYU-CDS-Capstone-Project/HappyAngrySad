@@ -1,22 +1,28 @@
 import data
 import os
-from flask import Flask, render_template, send_from_directory, redirect, url_for
+from flask import Flask, render_template, redirect, url_for
 import time
 import json
 import requests
 import random
 import threading
 from requests.auth import HTTPBasicAuth
+import model as m
+
 
 # initialization
 app = Flask(__name__)
 
 from datetime import timedelta
-from flask import make_response, request, current_app
-from functools import update_wrapper
+from flask import request
 import json
+import sys
+import getopt
 
-default_recommendations = ["ugo7Y2lRsxc", "Pc7BnT5X1tw", "IV_ef2mm4G0", "dlNO2trC-mk", "ugn_qmQ0NFo", "o2P5E7cFt9s", "Pje4f8c3W0Y", "3QVHUPPsTLY"]
+
+default_recommendations = ["EFpwgXCwMNQ", "3ZqPaohVjmw", "_OBlgSz8sSM",
+                           "sJgDYdA8dio", "Fc1P-AEaEp8", "7QLSRMoKKS0",
+                           "a1Y73sPHKxw"]
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -58,6 +64,20 @@ def logout():
     return response
 
 
+@app.route('/webcamDisplay', methods=['GET'])
+def webcamDisplay():
+    '''
+    Purpose:
+        redirect method to send user back to webcam visualization page
+    Parameters:
+        n/a
+    Returns:
+        response with URL redirect and cleared cookie value for username
+    '''
+    #response = redirect(url_for('webcamDisplay'))
+    return render_template('webcamDisplay.html')
+
+
 @app.route("/")
 def index():
     '''
@@ -75,6 +95,7 @@ def index():
     if username is None:
         return redirect(url_for('login'))
     return render_template('index.html', username=username)
+
 
 @app.route("/postFaces", methods=["POST"])
 def postFaces():
@@ -136,12 +157,10 @@ def finishView():
     username = request.cookies.get('username')
     # gets the view_id from the AJAX call
     view_id = request.json['view_id']
-    # compute the summary statistics for the view
-    stats = data.computeViewStats(view_id)
     # gets the user record from DB
     user = data.loadUser(username)
     # post graph edge of user view
-    data.updateGraph(view_id['video'], user['_id'], stats)
+    data.updateGraph(view_id, user['_id'])
     # updates user record with view_id
     user['views'].append(view_id)
     # marks user as dirty so model scripts know to update recommendations
@@ -151,67 +170,63 @@ def finishView():
     return "success"
 
 
-@app.route("/buildRecommendations", methods=["POST"])
-def buildRecommendations():
-    username = request.cookies.get('username')
-    user = data.loadUser(username)
-    # What if multiple people on app at same time?
-    # Should I prep compute the average score for each emotion for each user?
-    # Should the first version assume a single user?
-    # If I'm clustering users together to execute collaborative filtering,
-    # should I recompute the k-means clustering each time?
-    # Is there a way to add a new user to a pre-defined k-means clust
-    # without having to recompute the entire group?
-    # Could we precompute the entire group and then as the user watches vides
-    # we move them from one group to another depending on reactions?
-    return json.dumps(recommendations)
-
-
 @app.route("/getRecommendations", methods=["GET"])
 def getRecommendations():
     username = request.cookies.get('username')
     user = data.loadUser(username)
-
     recommendations = default_recommendations[0:6]
-
-    if 'recommendations' in user and len(user['recommendations']) > 0:
-        recommendations = user['recommendations']
+    if 'recommendations' in user and type(user['recommendations']) == list:
+        if len(user['recommendations']) >= 6:
+            recommendations = user['recommendations']
+        else:
+            numRecomsToUse = 6 - len(user['recommendations'])
+            recommendations = user['recommendations'] + \
+                recommendations[:numRecomsToUse]
     return json.dumps(recommendations)
 
 
 def recomputeRecommendations():
-    print("Will wait for the server to start")
-    time.sleep(5) # Let the server start first
+    print("Summary Stats - Will wait for the server to start")
+    time.sleep(5)  # Let the server start first
     print("recomputeRecommendations thread started")
     while True:
+        time.sleep(2)
         users = data.getDirtyUsers()
+        print 'users'
+        print users
         if (len(users) == 0):
-            time.sleep(0.1)
+            time.sleep(1)
             continue
 
         print("There are " + str(len(users)) + " dirty users")
+        user_id = users[0]["_id"]
         login = users[0]["login"]
         print("Will recompute recommendations for user '" + login + "'")
+        print("Will recompute recommendations for user '" + user_id + "'")
+        recommendations = m.getBestRec(user_id)
+        print type(recommendations)
 
-        #TODO: recommendation logic goes here
-        recommendations = random.sample(default_recommendations, 6)
-
-        # While recommendations were being computed, the user could have watched
-        # one more video, in which case the user doc we are holding would be 
-        # out of date, and we should always use the latest rev of the user doc
-        # to update it.
         user = data.loadUser(login)
         user["recommendations"] = recommendations
         user["dirty"] = False
         data.saveUser(user)
         print("Done with recommendations for user '" + login + "'")
 
-# launch
-if __name__ == "__main__":
+
+def main(args):
+    if args == ['--env=prod']:
+        print("Running in production mode!")
+        data.env = 'prod'
+    else:
+        print("Running in test mode")
 
     port = int(os.environ.get("PORT", 8080))
 
     recommendationsThread = threading.Thread(target=recomputeRecommendations)
+    recommendationsThread.daemon = True
     recommendationsThread.start()
+    app.run(host='0.0.0.0', port=port, threaded=True)
 
-    app.run(host='0.0.0.0', port=port)
+# launch
+if __name__ == "__main__":
+    main(sys.argv[1:])
