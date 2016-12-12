@@ -46,7 +46,15 @@ contentDBAuth = {
 # python app.py --env=prod
 env = 'test'
 
-
+def change_mode_to_prod():
+    global env
+    env = 'prod'
+    
+def change_mode_to_test():
+    global env 
+    env = 'test'
+    
+    
 def buildUrl(db, url):
     '''
     Purpose:
@@ -259,6 +267,25 @@ def getGraph():
     return G
 
 
+def getUserItems():
+    query = {
+        "selector": {
+            "_id": {
+                "$gt": 0
+            }
+        },
+        "fields": [
+            "user_id",
+            "video_id"
+        ],
+    }
+    r = post("useritem", "_find", query,
+             userItemDBAuth, jsonContentHeaders, 200)
+    edges = r.json()['docs']
+#    print "getuseritems"
+#    print edges
+    return edges
+
 def saveUser(user):
     '''
     Purpose:
@@ -283,21 +310,6 @@ def getDirtyUsers():
     r = post('users', '_find', query, usersDbAuth, jsonContentHeaders, 200)
     return r.json()["docs"]
 
-
-def getAllContentIds():
-    query = {
-        "selector": {
-            "_id": {
-                "$gt": 0
-            }
-        },
-        "fields": [
-            "video_id","_id","_rev"
-        ],
-    }
-    r = post('content', '_find', query,
-             contentDBAuth, jsonContentHeaders, 200)
-    return r.json()['docs']
 
 
 def computeViewStats(view_id):
@@ -346,6 +358,40 @@ def updateGraph(view_id, user_id):
     print "successfully updated Graph useritem pair"
 
 
+def getAllContentIds():
+    query = {
+        "selector": {
+            "_id": {
+                "$gt": 0
+            }
+        },
+        "fields": [
+            "video_id","_id","_rev",'title','thumbnail_url'
+        ],
+    }
+    #r = get("content", 'video_id', contentDbAuth)
+
+    r = post('content', '_find', query,
+              contentDBAuth, jsonContentHeaders, 200)
+    return r.json()['docs']
+
+def getAllUsers():
+    query = {
+        "selector": {
+            "_id": {
+                "$gt": 0
+            }
+        },
+        "fields": [
+         "_id", "_rev", "login", "views"
+        ]
+     }
+    
+    r = post('users', '_find', query,
+              usersDbAuth, jsonContentHeaders, 200)
+    return r.json()
+
+
 def postContent(contentData, put =True):
     '''
     Purpose:
@@ -379,7 +425,7 @@ def postContent(contentData, put =True):
 
         #title =  metaData.json()
         print stats
-        createContent(stats)
+        #createContent(stats)
 
 
 def createContent(data):
@@ -394,9 +440,12 @@ def createContent(data):
     post('content', '', data, contentDBAuth, jsonContentHeaders, 201)
 
 if __name__ == '__main__':
-   
-    ids = getAllContentIds()
-    postContent(ids)
-    # data = ["FGXDKrUoVrw","ccAiiGb7S6k","_OVg8uov78I","hJdF8DJ70Dc","6xncCLKC7gY","SIWLR5g0G74","Fc1P-AEaEp8","WApuXPDR5Q0","1zyQ6c7hNG4","he2a4xK8ctk","HseMjKYs4Ug","cPi6OTCGLF0","BUS6nKpddec","ZZbIx7xy5mc","k5xebCq6lfk","q6I29UlOZSo","A43JOxLa5MM","R97TsVDC1BY","q8DiOthAKek","vkG7FGVWsLA","SEBLt6Kd9EY","G7RgN9ijwE4","d5mK7dzyUkM","vLfAtCbE_Jc","CAbUmTUiVtI","UiyDmqO59QE","8szwlCnKUbY","jmQ4nRbtbTM","sKFpFmQSeGs","B03XxfTl4Uk","QKSMxdsw_ZU","Hree0k9jpTs","Vw4KVoEVcr0","5d7aruKYkKs","PWXigjFm4TM","1hPxGmTGarM","J---aiyznGQ","C_S5cXbXe-4","ssC1JDCXk2M","Fj73JF_bhjc","c8xJtH6UcQY","wMQvCCBbRK4","vNSxargsAWk","VJm-E38G3-0","29Rk9sBdoB8","Wh-gxWpQijw","CliXVjTBMnw","q1LSv468kzI","NsKaCS3CtsY","wEyxE5htfTE","wgTZUU4gJ2U","HrN-GPYlcbQ","KDDN40hHXCQ","YfFko5qhZtY","nTDud03nzCg","uxrTLmruBKk","PaFnO5LKTSs","aS10mmDvDCs","bPWZ7ASnhiE","JDaLg7G8rH0"]
-    # postContent(data)
-
+    change_mode_to_prod()
+    print (getAllUsers())
+#    change_mode_to_prod()
+#    print (getAllViews())
+#    data = getUserItems()
+#    print (data)
+#    print ""
+#    ids = getAllContentIds()
+#    print ids
